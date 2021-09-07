@@ -12,6 +12,7 @@ A PDB topology file is needed for most calculations
 - scipy
 - mdtraj
 - cython
+- mendeleev
 
 ## files
 

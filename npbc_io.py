@@ -11,6 +11,42 @@ import mdtraj as md
 import numpy as np
 import scipy as sp
 
+def create_hole(solute, solvent, rsphere, radii, elec, tol, outname):
+    """
+    create hole using covalent radii and same eq as proxima with
+    role of tolerance reversed
+    """
+    solute_top = solute.topology
+    solvent_top = solvent.topology
+    solute_atoms = [a.element.symbol for a in solute_top.atoms]
+    solvent_atoms = np.asarray([a.element.symbol for a in solvent_top.atoms])
+    solvent_natoms = len(solvent_top.select("resid 1"))
+    residues = list(range(solvent_top.n_residues))
+    remove = list()
+    rsphere = rsphere/10.
+    solvent.xyz[0] = solvent.xyz[0] - rsphere
+    for res in range(len(residues)):
+        ratoms = solvent_top.select("resid " + str(res))
+        if len(ratoms) == 0: 
+            continue
+        for jatom in range(solute.n_atoms):
+            jelem = solute_atoms[jatom]
+            if jelem == "VS": continue
+            D = 10.*np.linalg.norm(solvent.xyz[0][ratoms] - solute.xyz[0][jatom], axis=1)
+            C = np.array([(radii[i] + radii[jelem]-0.07*(elec[i]-elec[jelem])**2 + tol)\
+                           for i in solvent_atoms[ratoms]])
+            #print(solvent.xyz[0][ratoms],D,C,solute.xyz[0][jatom])
+            if np.min(D) <= np.max(C):
+                remove.append(res)
+            #break
+        #break
+    print(remove)
+    okres = list(set(residues).difference(remove))
+    rlist = "resid " + ' '.join(list(map(str,okres)))
+    solvent.restrict_atoms(solvent_top.select(rlist))
+    solvent.save(outname)
+    return okres
+
 def sphere_radii(atoms, nbins, const_vol, rmin, rmax):
     """
     calculate inner and outer radius of each concentric shell
