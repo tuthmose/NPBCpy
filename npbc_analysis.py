@@ -4,26 +4,29 @@ import mdtraj as md
 import numpy as np
 import scipy as sp
 
+import npbc_cy
+
 # FUNCTIONS    
 
 ## hbonds
 
-def cont_hbonds(coords, nbins, rdf, adf, bmax, hmax, dmax, H, D, A):
+def cont_hbonds(coords, nbins, rdf, adf, bmax, hmax, dmax, H, D, A, norm):
     """
     calculate F_HB function; if A contains more than one atom,
     return an average value and a histogram
     """
-    values = calclow.calc_fhb(coords, 2, rdf, adf, bmax, dmax, hmax, H, D, A)
+    values = npbc_cy.calc_fhb(coords, 2, rdf, adf, bmax, dmax, hmax, H, D, A)
     if len(values) > 0:
         his, rsp = np.histogram(values, bins=nbins, range=(0., 3.))
-        if Myarg.norm:
+        if norm:
             return np.average(values), his/len(values)
         else:
             return np.average(values), his
     else:
         return None, None
 
-def calc_hbonds(first_frame, last_frame, traj, rdf, adf, bmax, hmax, dmax, H, D, A):
+def calc_hbonds(first_frame, last_frame, shift, traj, rdf, adf, bmax, hmax, dmax, nbins, \
+    norm, H, D, A):
     """
     read frames from xtcfile, then loop over particles and distances  
     and calculate histogram for g(r); return numpy arrays 
@@ -37,7 +40,7 @@ def calc_hbonds(first_frame, last_frame, traj, rdf, adf, bmax, hmax, dmax, H, D,
     for frame in range(first_frame, last_frame):
         #calculate rdf for this frame
             X = traj.xyz[frame]
-            fhb, hist = cont_hbonds(X+shift, nbins, rdf, adf, bmax, hmax, dmax, H, D, A)
+            fhb, hist = cont_hbonds(X+shift, nbins, rdf, adf, bmax, hmax, dmax, H, D, A, norm)
             if fhb is None:
                 histH = histH + np.zeros(nbins)
                 timeF.append(-1)
@@ -223,14 +226,14 @@ def collect(normV, Coords, atoms, ntot, W, hfalp, versor, axis):
             com = np.average(C3, weights=W[i:i+3], axis=0)
             z = com[axis]
             mybin = (np.abs(hfp-z)).argmin()
-            vnormal = calclow.findvec(C3, normV)
+            vnormal = npbc_cy.findvec(C3, normV)
             cosangle = dotprod(versor, vnormal)
             cosines[mybin] += cosangle
             sines[mybin]   += sqrt(1.-cosangle**2)
     else:
         for i in range(0, ntot, 3):
             C3 = Coords[i:i+3]
-            vnormal = calclow.findvec(C3, normV)   
+            vnormal = npbc_cy.findvec(C3, normV)   
             mybin = (np.abs(hfalp - r)).argmin()
             com = np.average(C3, weights=W[i:i+3], axis=0)
             r = LA.norm(com)

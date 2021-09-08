@@ -6,9 +6,9 @@ import mdtraj as md
 import numpy as np
 import scipy as sp
 
-import calclow
-import libl402
-import myparse
+import npbc_cy
+import npbc_analysis
+import npbc_io
 
 Parse = argp.ArgumentParser(description='Continuous F function for hydrogen bonds based on radial distribution\
                              functions between H (hydrogen) and A (acceptor) and D (donor) and A \
@@ -98,10 +98,11 @@ except:
     raise ValueError("ERROR: wrong number of bins")
 
 # RUN
-groups = myparse.parse_index(Myarg.index, select)
-traj, first_frame, last_frame = myparse.loadtrj(Myarg.begin, Myarg.end, Myarg.input, top=Myarg.topology)
-frame, histH, timeF = libl402.calc_honds(first_frame, last_frame, traj, rdf, adf, bmax, hmax, dmax, \
-    groups[0], groups[1], groups[2])
+groups = npbc_io.parse_index(Myarg.index, select)
+traj, first_frame, last_frame = npbc_io.loadtrj(Myarg.begin, Myarg.end, Myarg.input, top=Myarg.topology)
+frame, histH, timeF = \
+    npbc_analysis.calc_hbonds(first_frame, last_frame, shift, traj, rdf, adf, bmax, hmax, dmax, \
+        nbins, Myarg.norm, groups[0], groups[1], groups[2])
 
 out = np.vstack((np.linspace(Myarg.begin, frame, frame-Myarg.begin), timeF)).transpose()
 np.savetxt(Myarg.output+"_fhb.dat", out, fmt="%9.6f")

@@ -6,7 +6,7 @@ import mdtraj as md
 import numpy as np
 import scipy as sp
 
-import myparse
+import npbc_io
 
 Parse = argp.ArgumentParser(description='Convert xyz to XTC using a PDB topology')
 # template and gaussian settings
@@ -50,7 +50,7 @@ else:
 top = md.load(Myarg.topology)
 
 if Myarg.select != 0:
-    atoms = myparse.parse_index(Myarg.index, select)
+    atoms = npbc_io.parse_index(Myarg.index, select)
 else:
     atoms = np.arange(top.n_atoms)
 
@@ -60,7 +60,7 @@ if natoms != top.n_atoms:
 else:
     newtrj = top
     
-myxyz, natoms, nframes = myparse.loadxyz(Myarg.input, atoms)
+myxyz, natoms, nframes = npbc_io.loadxyz(Myarg.input, atoms)
 time = np.asarray([i*Myarg.deltat for i in range(nframes)])
 
 with md.formats.XTCTrajectoryFile(Myarg.out, 'w') as f:

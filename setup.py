@@ -23,7 +23,7 @@ elif "build_ext" in args:
     os.environ['ARCHFLAGS'] = "-arch x86_64"
     
     extensions = [
-        Extension("calclow",["calclow.pyx"],
+        Extension("npbc_cy",["npbc_cy.pyx"],
             #include_dirs=[...],
             #libraries=[...],
             #library_dirs=[...],
