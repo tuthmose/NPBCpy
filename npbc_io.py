@@ -33,10 +33,13 @@ def create_hole(solute, solvent, rsphere, radii, elec, tol, outname):
             jelem = solute_atoms[jatom]
             if jelem == "VS": continue
             D = 10.*np.linalg.norm(solvent.xyz[0][ratoms] - solute.xyz[0][jatom], axis=1)
-            C = np.array([(radii[i] + radii[jelem]-0.07*(elec[i]-elec[jelem])**2 + tol)\
-                           for i in solvent_atoms[ratoms]])
-            #print(solvent.xyz[0][ratoms],D,C,solute.xyz[0][jatom])
-            if np.min(D) <= np.max(C):
+            C = list()
+            for i in solvent_atoms[ratoms]:
+                if i=="VS" or i=="X" or i=="LP":
+                    continue
+                c = radii[i] + radii[jelem]-0.07*(elec[i]-elec[jelem])**2 + tol
+                C.append(c)
+            if np.min(D) <= np.max(np.asarray(C)):
                 remove.append(res)
             #break
         #break
