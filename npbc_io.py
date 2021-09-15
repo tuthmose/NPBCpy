@@ -50,7 +50,7 @@ def create_hole(solute, solvent, rsphere, radii, elec, tol, outname):
     solvent.save(outname)
     return okres
 
-def sphere_radii(atoms, nbins, const_vol, rmin, rmax):
+def sphere_radii(atoms, natoms, nbins, const_vol, rmin, rmax):
     """
     calculate inner and outer radius of each concentric shell
     """
@@ -58,6 +58,7 @@ def sphere_radii(atoms, nbins, const_vol, rmin, rmax):
     nm3_l = 10**(-24)
     radius = (rmax - rmin)
     Vtot = (4.0/3.0)*np.pi*(radius**3)
+    csph = 4.0*np.pi/3.0
     if const_vol:
         vol  = Vtot/nbins    
         print("--- Using concentrinc shells of volume: ", vol, " angstroem^3")
@@ -73,7 +74,6 @@ def sphere_radii(atoms, nbins, const_vol, rmin, rmax):
         print("--- Layer ",nbins," radii= ",r[-2],"->",r[-1]," nm, Vol,",csph*(r[-1]**3-r[-2]**3))
     else:
         rlayer = radius/nbins
-        csph = 4.0*np.pi/3.0
         r   = [rmin]
         vol = [0.]
         print("--- Using concentric shells of radius :", rlayer, " angstroem")
@@ -85,11 +85,11 @@ def sphere_radii(atoms, nbins, const_vol, rmin, rmax):
         vol = vol[1:]
     r = np.asarray(r)
     ntot = len(atoms)
-    nmol = ntot/3
+    nmol = ntot/natoms
     rho_mean = nmol/Vtot
     rho_moll = rho_mean/(NA*nm3_l)
-    print("--- # Atoms and triplets ",ntot, nmol)
-    print("--- Average density (for triplets), is: ",rho_mean," molecules/nm3, i.e. ",rho_moll," mol/l")
+    print("--- # Atoms and molecules",ntot, nmol)
+    print("--- Average density (for molecules), is: ",rho_mean," molecules/nm3, i.e. ",rho_moll," mol/l")
     return vol, r
 
 def parse_index(ndxfile, mols):

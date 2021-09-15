@@ -23,6 +23,8 @@ Parse.add_argument("-N","--natoms",default=False,action="store",help="number of 
     in selected molecules")
 Parse.add_argument("-R","--rsphere",default=False,action="store",\
     help="radius for spherical boxes (angs)")
+Parse.add_argument("-r","--rmax",action="store",default=False,nargs=2,\
+    help="minimum and maximum distance (angs) from the center of the sphere for reference atoms")
 Parse.add_argument("-n","--nbins",action="store",type=int,default=10,\
     help="number of bins to use; default=10")
 Parse.add_argument("-V","--volume",default=False,action="store_true",\
@@ -51,6 +53,11 @@ try:
 except:
     raise ValueError("ERROR: sphere radius not set")
     
+if Myarg.rmax: 
+    rmax = np.array(list(map(float,Myarg.rmax)))/10.
+else:
+    raise ValueError("ERROR: rmax not set")
+
 if Myarg.shift:
     shift = np.array(map(float,Myarg.shift))/10.
 else:
@@ -90,8 +97,9 @@ atoms = np.asarray(list(top.atoms))
 W = np.array([a.element.mass for a in atoms[target]],dtype=np.float32)
 nmol = len(target)/natoms
 
-vol,Radii = npbc_io.sphere_radii(target, natoms, nbins, RSphere)
-rho = npbc_analysis.calc_density(first_frame, last_frame, vol, traj, target, natoms, nmol, Radii, W)
+vol,Radii = npbc_io.sphere_radii(target, natoms, nbins, Myarg.volume, rmax[0], rmax[1])
+rho = npbc_analysis.calc_density(first_frame, last_frame, shift, vol, traj, \
+    target, natoms, nmol, Radii, W)
 np.savetxt(options.outname+".dat",RHO.T,fmt="%15.6f")
         
 quit()

@@ -64,34 +64,37 @@ def collect_dens(atoms, ntot, Coords, natoms, radii2, MM):
     rho,edges = np.histogram(COM2,bins=radii2)
     return rho      
     
-def calc_density(first_frame, last_frame, vl, traj, atoms, natoms, nmol, radii, Mass):
+def calc_density(first_frame, last_frame, shift, vol, traj, atoms, natoms, nmol, radii, M):
     """
     read frames from xtcfile, then    
     loop over particles; returns numpy arrays 
     """   
+    nbins = len(radii)-1
     RHO  = np.zeros(nbins, dtype=np.float64)
     RHO2 = np.zeros(nbins, dtype=np.float64)    
     ntot = len(atoms)
-    Mtot = np.sum(Mass[:natoms])
+    print(M)
+    Mtot = np.sum(M[:natoms])
     M = M / Mtot
     # element by element np array mult
     M = np.vstack((M, M, M)).T
     print(M)
     radii2 = radii**2
     print("--- Reading frames")
+    frame = first_frame
     while True:
         if frame >= last_frame:
             break
         else:
             X = traj.xyz[frame]
-            rho = collect_dens(atoms, ntot, X, natoms, radii2 ,M)
+            rho = collect_dens(atoms, ntot, X+shift, natoms, radii2 ,M)
             frame += 1
             RHO  = RHO  + rho
             RHO2 = RHO2 + rho*rho
     print("--- Done reading frames")
     print("--- Read ", frame," frames")
     frame += 1
-    norm = (vl*NA*nm3_l)
+    norm = (vol*NA*nm3_l)
     RHO2 = np.sqrt((RHO2/frame - (RHO/frame)**2))
     halfpoints = [radii[i-1] + (radii[i]-radii[i-1])/2.0 for i in xrange(1,nbins+1)]
     if options.from_wall is False:
