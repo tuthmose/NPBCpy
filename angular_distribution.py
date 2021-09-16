@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # G Mancini Jul 2021
 
 from scipy.spatial.distance import cdist,pdist,squareform

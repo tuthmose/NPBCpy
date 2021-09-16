@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # G Mancini June 2020
 
 

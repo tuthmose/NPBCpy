@@ -73,12 +73,10 @@ def calc_density(first_frame, last_frame, shift, vol, traj, atoms, natoms, nmol,
     RHO  = np.zeros(nbins, dtype=np.float64)
     RHO2 = np.zeros(nbins, dtype=np.float64)    
     ntot = len(atoms)
-    print(M)
     Mtot = np.sum(M[:natoms])
     M = M / Mtot
     # element by element np array mult
     M = np.vstack((M, M, M)).T
-    print(M)
     radii2 = radii**2
     print("--- Reading frames")
     frame = first_frame
@@ -94,7 +92,7 @@ def calc_density(first_frame, last_frame, shift, vol, traj, atoms, natoms, nmol,
     print("--- Done reading frames")
     print("--- Read ", frame," frames")
     frame += 1
-    norm = (vol*NA*nm3_l)
+    norm = (vol*sp.constants.N_A*nm3_l)
     RHO2 = np.sqrt((RHO2/frame - (RHO/frame)**2))
     halfpoints = [radii[i-1] + (radii[i]-radii[i-1])/2.0 for i in xrange(1,nbins+1)]
     if options.from_wall is False:

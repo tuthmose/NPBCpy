@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # G Mancini Jul 2021
 
 from sys import argv, exit
@@ -97,6 +98,7 @@ atoms = np.asarray(list(top.atoms))
 W = np.array([a.element.mass for a in atoms[target]],dtype=np.float32)
 nmol = len(target)/natoms
 
+print(W[:12])
 vol,Radii = npbc_io.sphere_radii(target, natoms, nbins, Myarg.volume, rmax[0], rmax[1])
 rho = npbc_analysis.calc_density(first_frame, last_frame, shift, vol, traj, \
     target, natoms, nmol, Radii, W)

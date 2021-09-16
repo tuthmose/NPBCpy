@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # G Mancini Aug 2021
 
 from sys  import argv, exit
