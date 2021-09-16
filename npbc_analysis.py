@@ -64,7 +64,8 @@ def collect_dens(atoms, ntot, Coords, natoms, radii2, MM):
     rho,edges = np.histogram(COM2,bins=radii2)
     return rho      
     
-def calc_density(first_frame, last_frame, shift, vol, traj, atoms, natoms, nmol, radii, M):
+def calc_density(first_frame, last_frame, shift, vol, from_wall, traj, atoms, natoms, nmol, \
+    radii, rmax, M):
     """
     read frames from xtcfile, then    
     loop over particles; returns numpy arrays 
@@ -92,15 +93,15 @@ def calc_density(first_frame, last_frame, shift, vol, traj, atoms, natoms, nmol,
     print("--- Done reading frames")
     print("--- Read ", frame," frames")
     frame += 1
+    nm3_l = 10**(-24)
     norm = (vol*sp.constants.N_A*nm3_l)
     RHO2 = np.sqrt((RHO2/frame - (RHO/frame)**2))
-    halfpoints = [radii[i-1] + (radii[i]-radii[i-1])/2.0 for i in xrange(1,nbins+1)]
-    if options.from_wall is False:
+    halfpoints = [radii[i-1] + (radii[i]-radii[i-1])/2.0 for i in range(1,nbins+1)]
+    if from_wall is False:
         RHO  = np.vstack((halfpoints,RHO/(frame*norm),RHO2/norm))
     else:
-        x_from_boundary = [ (RSphere - i) for i in halfpoints]
+        x_from_boundary = [ (rmax - i) for i in halfpoints]
         RHO  = np.vstack((x_from_boundary,RHO/(frame*norm),RHO2/norm))
-#   np.savetxt(options.outname+".dat",RHO.T,fmt="%15.6f")
     return RHO
 
 ## nearest neighbour
@@ -253,7 +254,7 @@ def calc_orient(normV, first_frame, last_frame, traj, top, group, vol, radii):
     THETA  = np.zeros(nbins,dtype=np.float64)
     THETA2 = np.zeros(nbins,dtype=np.float64)    
     if axis == False:
-        halfp = np.asarray([radii[i-1] + (radii[i]-radii[i-1])/2.0 for i in xrange(1,nbins+1)])
+        halfp = np.asarray([radii[i-1] + (radii[i]-radii[i-1])/2.0 for i in range(1,nbins+1)])
     ntot = len(atoms)
     W = np.asarray([a.element.mass for a in top.atoms[group]])
     #

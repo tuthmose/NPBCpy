@@ -100,8 +100,8 @@ nmol = len(target)/natoms
 
 print(W[:12])
 vol,Radii = npbc_io.sphere_radii(target, natoms, nbins, Myarg.volume, rmax[0], rmax[1])
-rho = npbc_analysis.calc_density(first_frame, last_frame, shift, vol, traj, \
-    target, natoms, nmol, Radii, W)
-np.savetxt(options.outname+".dat",RHO.T,fmt="%15.6f")
+rho = npbc_analysis.calc_density(first_frame, last_frame, shift, vol, Myarg.from_wall, traj, \
+    target, natoms, nmol, Radii, rmax[1], W)
+np.savetxt(Myarg.output+".dat",rho.T,fmt="%15.6f")
         
 quit()
