@@ -9,9 +9,9 @@ import mdtraj as md
 import numpy as np
 import scipy as sp
 
-import calclow
-import libl402
-import myparse
+import npbc_io
+import npbc_analysis
+import npbc_cy
 
 Parse = argp.ArgumentParser(description='orientation of a vector defined by a atom triplet wrt to the sphere axis')
 # template and gaussian settings
@@ -29,13 +29,19 @@ Parse.add_argument("-x","--shift",action="store",default=False,nargs=3,\
     help="shift coordinates by x,y,z")
 Parse.add_argument("-R","--rad-sphere",dest="sphere",default=False,action="store",\
     help="radius for spherical boxes (nm)")
+Parse.add_argument("-n","--nbins",action="store",type=int,default=10,\
+    help="number of bins to use; default=10")
+Parse.add_argument("-r","--rmax",action="store",default=False,nargs=2,\
+    help="minimum and maximum distance (angs) from the center of the sphere for reference atoms")
 Parse.add_argument("-a","--axis",dest="axis",default=False,action="store",\
     help="calculate distribution along an axis wrt to a triclinic box")
 Parse.add_argument("-c","--cutoff",dest="cutoff",default=False,action="store",nargs=2)
 Parse.add_argument("-V","--volume",dest="volume",default=False,action="store_true",\
-help="Use constant volume layers instead of constant radius")
+    help="Use constant volume layers instead of constant radius")
+Parse.add_argument("-v","--normV",dest="normV",default=False,action="store_true",\
+    help="Use vector orthogonal to plane spanned by triplet instead of bisecting one")
 Parse.add_argument("-N","--normV",dest="normV",default=False,action="store_true",\
-help="Use vector orthogonal to plane spanned by triplet instead of bisecting one")
+    help="Use vector orthogonal to plane spanned by triplet instead of bisecting one")
 Myarg = Parse.parse_args()
 print(Myarg)
 
@@ -81,7 +87,16 @@ if Myarg.axis:
 else:
     axis = False
 
-rad2deg = 180.0/np.pi
+if Myarg.rmax: 
+    rmax = np.array(list(map(float,Myarg.rmax)))/10.
+else:
+    raise ValueError("ERROR: rmax not set")
+
+if not Myarg.natoms:
+    print("Perception of residues from topology nyi")
+    raise ValueError("Missing number of atoms in target molecule type")
+else:
+    natoms = int(Myarg.natoms)
 
 # RUN
 group = myparse.parse_index(Myarg.index, select)
@@ -93,7 +108,7 @@ top = traj.topology()
 W = np.array([a.element.mass for a in atoms[target]],dtype=np.float32)
 
 theta = npbc_analysis.calc_orient(Myarg.normV, first_frame, last_frame, traj, \
-    shift, top, group, axis, vol, radii, W)
+    shift, top, group, axis, vol, radii, W, natoms)
 
 np.savetxt(Myarg.outname+".dat",theta.T,fmt="%16.9f")
  

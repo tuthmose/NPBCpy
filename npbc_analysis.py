@@ -217,7 +217,7 @@ def calc_nmol(first_frame, last_frame, traj, natoms, cutoff, nearest, groupA, gr
 
 ## orientation
 
-def collect(normV, Coords, atoms, W, hfalp, versor, axis, nbins):
+def collect(normV, Coords, atoms, W, hfalp, versor, axis, nbins, natoms):
     """
     loop over molecules
     """
@@ -226,18 +226,18 @@ def collect(normV, Coords, atoms, W, hfalp, versor, axis, nbins):
     sines   = np.zeros(nbins)
     if versor:
         for i in atoms:
-            com = np.average(Coords[i:i+3,:], weights=W[i:i+3], axis=0)
+            com = np.average(Coords[i:i+natoms,:], weights=W[i:i+natoms], axis=0)
             z = com[axis]
             mybin = (np.abs(hfp-z)).argmin()
-            vnormal = npbc_cy.findvec(Coords[i:i+3,:], normV)
+            vnormal = npbc_cy.findvec(Coords[i:i+natoms,:], normV)
             cosangle = dotprod(versor, vnormal)
             cosines[mybin] += cosangle
             sines[mybin]   += sqrt(1.-cosangle**2)
     else:
-        for a in range(0, len(atoms), 3):
+        for a in range(0, len(atoms), natoms):
             i = atoms[a]
-            vnormal = npbc_cy.findvec(Coords[i:i+3,:], normV)   
-            com = np.average(Coords[i:i+3,:], weights=W[i:i+3],axis=0)
+            vnormal = npbc_cy.findvec(Coords[i:i+natoms,:], normV)   
+            com = np.average(Coords[i:i+natoms,:], weights=W[i:i+natoms],axis=0)
             r = np.linalg.norm(com)
             mybin = (np.abs(hfalp - r)).argmin()
             cosangle = npbc_cy.dotprod(com, vnormal)
@@ -247,7 +247,8 @@ def collect(normV, Coords, atoms, W, hfalp, versor, axis, nbins):
     Theta = np.arctan2(sines, cosines)
     return Theta, Theta**2
 
-def calc_orient(normV, first_frame, last_frame, traj, shift, top, group, axis, vol, radii, weights):
+def calc_orient(normV, first_frame, last_frame, traj, shift, top, group, axis, vol, \
+    radii, weights, natoms):
     """
     read frames from xtcfile, then loop over particles and distances  
     and calculate histogram for g(r); return numpy arrays 
@@ -265,18 +266,21 @@ def calc_orient(normV, first_frame, last_frame, traj, shift, top, group, axis, v
         first_frame = 0
     versor = False
     frame = first_frame
+    tf = list()
     #loop over all frames
     for frame in range(first_frame, last_frame):
         #calculate for this frame
         X = traj.xyz[frame]
-        theta, theta2 = collect(normV, X+shift, group, weights, halfpoints, versor, axis, nbins)
+        theta, theta2 = collect(normV, X+shift, group, weights, halfpoints, versor, axis, nbins, natoms)
         THETA  = THETA  + theta
         THETA2 = THETA2 + theta2
+        tf.append((frame, theta))
     print("--- Read ",frame," frames")
-    theta  = theta/frame
-    theta2 = np.sqrt(theta/frame - theta2**2)
-    theta  = np.vstack((halfpoints,-(theta*rad2deg-90.0),theta2*rad2deg))
-    return frame, THETA, THETA2
+    THETA  = theta/frame
+    THETA2 = np.sqrt(THETA2/frame - THETA**2)
+    THETA  = np.vstack((halfpoints,-(THETA*rad2deg-90.0),THETA2*rad2deg)).T
+    tf = np.asarray(tf)
+    return tf, THETA
 
 ## rdf
 
