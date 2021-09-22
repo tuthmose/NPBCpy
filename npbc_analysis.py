@@ -1,5 +1,6 @@
 # G Mancini Sept 2021
 
+import math
 import mdtraj as md
 import numpy as np
 import scipy as sp
@@ -71,6 +72,7 @@ def calc_density(first_frame, last_frame, shift, vol, from_wall, traj, atoms, na
     loop over particles; returns numpy arrays 
     """   
     nbins = len(radii)-1
+    atoms = tuple(atoms)
     RHO  = np.zeros(nbins, dtype=np.float64)
     RHO2 = np.zeros(nbins, dtype=np.float64)    
     ntot = len(atoms)
@@ -215,7 +217,7 @@ def calc_nmol(first_frame, last_frame, traj, natoms, cutoff, nearest, groupA, gr
 
 ## orientation
 
-def collect(normV, Coords, atoms, ntot, W, hfalp, versor, axis):
+def collect(normV, Coords, atoms, W, hfalp, versor, axis, nbins):
     """
     loop over molecules
     """
@@ -223,53 +225,57 @@ def collect(normV, Coords, atoms, ntot, W, hfalp, versor, axis):
     cosines = np.zeros(nbins)
     sines   = np.zeros(nbins)
     if versor:
-        for i in range(0, ntot, 3):
-            C3 = Coords[i:i+3]
-            com = np.average(C3, weights=W[i:i+3], axis=0)
+        for i in atoms:
+            com = np.average(Coords[i:i+3,:], weights=W[i:i+3], axis=0)
             z = com[axis]
             mybin = (np.abs(hfp-z)).argmin()
-            vnormal = npbc_cy.findvec(C3, normV)
+            vnormal = npbc_cy.findvec(Coords[i:i+3,:], normV)
             cosangle = dotprod(versor, vnormal)
             cosines[mybin] += cosangle
             sines[mybin]   += sqrt(1.-cosangle**2)
     else:
-        for i in range(0, ntot, 3):
-            C3 = Coords[i:i+3]
-            vnormal = npbc_cy.findvec(C3, normV)   
+        for a in range(0, len(atoms), 3):
+            i = atoms[a]
+            vnormal = npbc_cy.findvec(Coords[i:i+3,:], normV)   
+            com = np.average(Coords[i:i+3,:], weights=W[i:i+3],axis=0)
+            r = np.linalg.norm(com)
             mybin = (np.abs(hfalp - r)).argmin()
-            com = np.average(C3, weights=W[i:i+3], axis=0)
-            r = LA.norm(com)
-            cosangle = dotprod(com, vnormal)
+            cosangle = npbc_cy.dotprod(com, vnormal)
             cosines[mybin] += cosangle
-            sines[mybin]   += sqrt(1.-cosangle**2)
+            sines[mybin]   += math.sqrt(1.-cosangle**2)
     #circ mean
-    Theta = np.arctan2(sines, cosines, axis=0)
+    Theta = np.arctan2(sines, cosines)
     return Theta, Theta**2
 
-def calc_orient(normV, first_frame, last_frame, traj, top, group, vol, radii):
+def calc_orient(normV, first_frame, last_frame, traj, shift, top, group, axis, vol, radii, weights):
     """
     read frames from xtcfile, then loop over particles and distances  
     and calculate histogram for g(r); return numpy arrays 
     """
+    rad2deg = 180.0/np.pi
+    nbins = len(radii)-1
     THETA  = np.zeros(nbins,dtype=np.float64)
     THETA2 = np.zeros(nbins,dtype=np.float64)    
     if axis == False:
-        halfp = np.asarray([radii[i-1] + (radii[i]-radii[i-1])/2.0 for i in range(1,nbins+1)])
-    ntot = len(atoms)
-    W = np.asarray([a.element.mass for a in top.atoms[group]])
+        halfpoints = np.asarray([radii[i-1] + (radii[i]-radii[i-1])/2.0 for i in range(1,nbins+1)])
+    else:
+        raise ValueError('Cylindrical version nyi')
     #
     if first_frame == -1: 
         first_frame = 0
+    versor = False
     frame = first_frame
     #loop over all frames
-    for frame in range(normV, first_frame, last_frame):
+    for frame in range(first_frame, last_frame):
         #calculate for this frame
-        versor = False
         X = traj.xyz[frame]
-        theta, theta2 = collect(normV, X+shift, group, ntot, W, hfalp, versor, axis)
+        theta, theta2 = collect(normV, X+shift, group, weights, halfpoints, versor, axis, nbins)
         THETA  = THETA  + theta
         THETA2 = THETA2 + theta2
     print("--- Read ",frame," frames")
+    theta  = theta/frame
+    theta2 = np.sqrt(theta/frame - theta2**2)
+    theta  = np.vstack((halfpoints,-(theta*rad2deg-90.0),theta2*rad2deg))
     return frame, THETA, THETA2
 
 ## rdf

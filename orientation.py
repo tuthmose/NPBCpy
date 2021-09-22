@@ -90,11 +90,10 @@ if len(group) % 3 != 0:
 
 traj, first_frame, last_frame = myparse.loadtrj(Myarg.begin, Myarg.end, Myarg.input, top=Myarg.topology)
 top = traj.topology()
+W = np.array([a.element.mass for a in atoms[target]],dtype=np.float32)
 
-frame, theta, theta2 = libl402.calc_orient(Myarg.normV, first_frame, last_frame, traj, top, group, vol, radii)
-theta  = theta/frame
-theta2 = np.sqrt(theta/frame - theta2**2)
-theta  = np.vstack((halfpoints,-(theta*rad2deg-90.0),theta2*rad2deg))
+theta = npbc_analysis.calc_orient(Myarg.normV, first_frame, last_frame, traj, \
+    shift, top, group, axis, vol, radii, W)
 
 np.savetxt(Myarg.outname+".dat",theta.T,fmt="%16.9f")
  
