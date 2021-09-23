@@ -373,10 +373,10 @@ def calc_rdf(first_frame, last_frame, nbins, calc_cn, smooth, norm, \
             CN    += cn
             frame += 1
     frame += 1
-    Nref = Nref/frame
+    Nref = Nref/(frame-first_frame)
     print("--- Read ",frame," frames")
     print("--- Average number of reference molecules ",Nref)
-    print("--- Average number density in dmax ",rho/(frame))
-    gofr,xbins,coord_num = normalize(calc_cn, norm, smooth, rmax, dmax, nbins, CN, RDF, frame)
+    print("--- Average number density in dmax ",rho/((frame-first_frame)))
+    gofr,xbins,coord_num = normalize(calc_cn, norm, smooth, rmax, dmax, nbins, CN, RDF, frame-first_frame)
     return 10.0*xbins, gofr, coord_num
 

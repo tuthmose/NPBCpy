@@ -7,8 +7,9 @@ import mdtraj as md
 import numpy as np
 import scipy as sp
 
-import libl402
-import myparse
+import npbc_io
+import npbc_analysis
+import npbc_cy
 
 Parse = argp.ArgumentParser(description='Pair correlation function (g(r)) for spherical boxes based on atom groups')
 # template and gaussian settings
@@ -88,9 +89,9 @@ else:
     select = list(map(int, Myarg.select))
     
 # RUN
-groups = myparse.parse_index(Myarg.index, select)
-traj, first_frame, last_frame = myparse.loadtrj(Myarg.begin, Myarg.end, Myarg.input, top=Myarg.topology)
-X,Rdf,CN = libl402.calc_rdf(first_frame, last_frame, nbins, Myarg.cn, Myarg.smooth, \
+groups = npbc_io.parse_index(Myarg.index, select)
+traj, first_frame, last_frame = npbc_io.loadtrj(Myarg.begin, Myarg.end, Myarg.input, top=Myarg.topology)
+X,Rdf,CN = npbc_analysis.calc_rdf(first_frame, last_frame, nbins, Myarg.cn, Myarg.smooth, \
     Myarg.norm, RSphere, rmax, dmax, shift, traj, groups[0], groups[1])
 
 if Myarg.cn:
