@@ -93,15 +93,12 @@ target = npbc_io.parse_index(Myarg.index, select).pop()
 
 traj, first_frame, last_frame = npbc_io.loadtrj(Myarg.begin, Myarg.end, Myarg.input, top=Myarg.topology)
 top = traj.topology
-top = traj.topology
 atoms = np.asarray(list(top.atoms))
 W = np.array([a.element.mass for a in atoms[target]],dtype=np.float32)
-nmol = len(target)/natoms
 
-print(W[:12])
 vol,Radii = npbc_io.sphere_radii(target, natoms, nbins, Myarg.volume, rmax[0], rmax[1])
-rho = npbc_analysis.calc_density(first_frame, last_frame, shift, vol, Myarg.from_wall, traj, \
-    target, natoms, nmol, Radii, rmax[1], W)
+rho = npbc_analysis.calc_density(first_frame, last_frame, shift, Myarg.from_wall, vol, traj, \
+    [target], natoms, Radii, rmax[1], W)
 np.savetxt(Myarg.output+".dat",rho.T,fmt="%15.6f")
         
 quit()

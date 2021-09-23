@@ -48,6 +48,7 @@ def calc_hbonds(first_frame, last_frame, shift, traj, rdf, adf, bmax, hmax, dmax
             else: 
                 histH = histH + hist
                 timeF.append(fhb)
+    frame = frame - first_frame + 1
     print("--- Read ",frame," frames")
     return frame, histH, timeF
 
@@ -65,7 +66,7 @@ def collect_dens(atoms, ntot, Coords, natoms, radii2, MM):
     rho,edges = np.histogram(COM2,bins=radii2)
     return rho      
     
-def calc_density(first_frame, last_frame, shift, vol, from_wall, traj, atoms, natoms, nmol, \
+def calc_density(first_frame, last_frame, shift, vol, from_wall, traj, atoms, natoms, \
     radii, rmax, M):
     """
     read frames from xtcfile, then    
@@ -73,6 +74,7 @@ def calc_density(first_frame, last_frame, shift, vol, from_wall, traj, atoms, na
     """   
     nbins = len(radii)-1
     atoms = tuple(atoms)
+    nmol = len(atoms) / natoms
     RHO  = np.zeros(nbins, dtype=np.float64)
     RHO2 = np.zeros(nbins, dtype=np.float64)    
     ntot = len(atoms)
@@ -92,9 +94,8 @@ def calc_density(first_frame, last_frame, shift, vol, from_wall, traj, atoms, na
             frame += 1
             RHO  = RHO  + rho
             RHO2 = RHO2 + rho*rho
-    print("--- Done reading frames")
+    frame = frame - first_frame + 1
     print("--- Read ", frame," frames")
-    frame += 1
     nm3_l = 10**(-24)
     norm = (vol*sp.constants.N_A*nm3_l)
     RHO2 = np.sqrt((RHO2/frame - (RHO/frame)**2))
@@ -211,6 +212,7 @@ def calc_nmol(first_frame, last_frame, traj, natoms, cutoff, nearest, groupA, gr
             X = traj.xyz[frame]
             nmol = calculate_coord_number(X+shift, weights, cutoff, natoms, nearest, groupA, groupB, groupC)
             timeN.append(nmol)
+    frame = frame - first_frame + 1
     print("--- Read ",frame," frames")
     timeN = np.asarray(timeN)
     return frame, timeN
@@ -275,6 +277,7 @@ def calc_orient(normV, first_frame, last_frame, traj, shift, top, group, axis, v
         THETA  = THETA  + theta
         THETA2 = THETA2 + theta2
         tf.append((frame, theta))
+    frame = frame - first_frame + 1
     print("--- Read ",frame," frames")
     THETA  = theta/frame
     THETA2 = np.sqrt(THETA2/frame - THETA**2)
@@ -372,11 +375,12 @@ def calc_rdf(first_frame, last_frame, nbins, calc_cn, smooth, norm, \
             Nref  += na
             CN    += cn
             frame += 1
-    frame += 1
-    Nref = Nref/(frame-first_frame)
+    #frame += 1
+    frame = frame - first_frame + 1
+    Nref = Nref/frame
     print("--- Read ",frame," frames")
     print("--- Average number of reference molecules ",Nref)
-    print("--- Average number density in dmax ",rho/((frame-first_frame)))
-    gofr,xbins,coord_num = normalize(calc_cn, norm, smooth, rmax, dmax, nbins, CN, RDF, frame-first_frame)
+    print("--- Average number density in dmax ",rho/(frame))
+    gofr,xbins,coord_num = normalize(calc_cn, norm, smooth, rmax, dmax, nbins, CN, RDF, frame)
     return 10.0*xbins, gofr, coord_num
 
