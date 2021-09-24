@@ -105,10 +105,7 @@ frame, histH, timeF = \
     npbc_analysis.calc_hbonds(first_frame, last_frame, shift, traj, rdf, adf, bmax, hmax, dmax, \
         nbins, Myarg.norm, groups[0], groups[1], groups[2])
 
-if Myarg.begin==0:
-    out = np.vstack((np.linspace(0, frame, frame), timeF)).transpose()
-else:
-    out = np.vstack((np.linspace(Myarg.begin, frame, frame-Myarg.begin+1), timeF)).transpose()
+out = np.vstack((np.linspace(Myarg.begin, frame+Myarg.begin, frame), timeF)).transpose()
 np.savetxt(Myarg.output+"_fhb.dat", out, fmt="%9.6f")
 
 if Myarg.histogram:
