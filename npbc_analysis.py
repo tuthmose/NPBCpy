@@ -67,14 +67,15 @@ def collect_dens(atoms, ntot, Coords, natoms, radii2, MM):
     return rho      
     
 def calc_density(first_frame, last_frame, shift, vol, from_wall, traj, atoms, natoms, \
-    radii, rmax, M):
+    radii, M):
     """
     read frames from xtcfile, then    
     loop over particles; returns numpy arrays 
     """   
+    # constants
+    NA  = sp.constants.N_A
+    nm3_l = 10**(-24)
     nbins = len(radii)-1
-    atoms = tuple(atoms)
-    nmol = len(atoms) / natoms
     RHO  = np.zeros(nbins, dtype=np.float64)
     RHO2 = np.zeros(nbins, dtype=np.float64)    
     ntot = len(atoms)
@@ -96,14 +97,13 @@ def calc_density(first_frame, last_frame, shift, vol, from_wall, traj, atoms, na
             RHO2 = RHO2 + rho*rho
     frame = frame - first_frame + 1
     print("--- Read ", frame," frames")
-    nm3_l = 10**(-24)
-    norm = (vol*sp.constants.N_A*nm3_l)
+    norm = (vol*NA*nm3_l)
     RHO2 = np.sqrt((RHO2/frame - (RHO/frame)**2))
     halfpoints = [radii[i-1] + (radii[i]-radii[i-1])/2.0 for i in range(1,nbins+1)]
     if from_wall is False:
         RHO  = np.vstack((halfpoints,RHO/(frame*norm),RHO2/norm))
     else:
-        x_from_boundary = [ (rmax - i) for i in halfpoints]
+        x_from_boundary = [ (radii[-1] - i) for i in halfpoints]
         RHO  = np.vstack((x_from_boundary,RHO/(frame*norm),RHO2/norm))
     return RHO
 
@@ -282,7 +282,7 @@ def calc_orient(normV, first_frame, last_frame, traj, shift, top, group, axis, v
     THETA  = theta/frame
     THETA2 = np.sqrt(THETA2/frame - THETA**2)
     THETA  = np.vstack((halfpoints,-(THETA*rad2deg-90.0),THETA2*rad2deg)).T
-    tf = np.asarray(tf)
+    tf = np.asarray(tf, dtype=object)
     return tf, THETA
 
 ## rdf
