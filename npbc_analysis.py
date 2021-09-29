@@ -219,7 +219,7 @@ def calc_nmol(first_frame, last_frame, traj, natoms, cutoff, nearest, groupA, gr
 
 ## orientation
 
-def collect(normV, Coords, atoms, W, hfalp, versor, axis, nbins, natoms):
+def collect_o(normV, Coords, atoms, W, hfalp, versor, axis, nbins, natoms):
     """
     loop over molecules
     """
@@ -273,7 +273,7 @@ def calc_orient(normV, first_frame, last_frame, traj, shift, top, group, axis, v
     for frame in range(first_frame, last_frame):
         #calculate for this frame
         X = traj.xyz[frame]
-        theta, theta2 = collect(normV, X+shift, group, weights, halfpoints, versor, axis, nbins, natoms)
+        theta, theta2 = collect_o(normV, X+shift, group, weights, halfpoints, versor, axis, nbins, natoms)
         THETA  = THETA  + theta
         THETA2 = THETA2 + theta2
         tf.append((frame, theta))
