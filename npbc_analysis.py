@@ -109,17 +109,17 @@ def calc_density(first_frame, last_frame, shift, vol, from_wall, traj, atoms, na
 
 ## nearest neighbour
 
-def calculate_distance(coords, nbins, nneigh, groupA, groupB):
+def calculate_distance(coords, nneigh, metric, groupA, groupB):
     """
     calculate distance, sort and return nneigh distances
     """
     A = coords[groupA]
     B = coords[groupB]
-    D = sp.spatial.distance.cdist(A, B, metric=Myarg.metric)
+    D = sp.spatial.distance.cdist(A, B, metric=metric)
     DS = np.sort(np.ravel(D))
     return 10.*DS[nneigh]
 
-def calc_nearest_dist(first_frame, last_frame, traj, nneigh, groupA, groupB):
+def calc_nearest_dist(first_frame, last_frame, shift, traj, nneigh, metric, groupA, groupB):
     """
     read frames from xtcfile, then loop over particles and distances  
     and calculate histogram for g(r); return numpy arrays 
@@ -132,8 +132,9 @@ def calc_nearest_dist(first_frame, last_frame, traj, nneigh, groupA, groupB):
     for frame in range(first_frame, last_frame):
         #calculate for this frame
             X = traj.xyz[frame]
-            dist = calculate_distance(X+shift, nbins, nneigh, groupA, groupB)
+            dist = calculate_distance(X+shift, nneigh, metric, groupA, groupB)
             timeD.append(dist)
+    frame = frame - first_frame + 1
     print("--- Read ",frame," frames")
     return frame, timeD
 

@@ -65,9 +65,10 @@ nneigh = int(Myarg.neigh)
 # RUN
 groups = myparse.parse_index(Myarg.index, select)
 traj, first_frame, last_frame = myparse.loadtrj(Myarg.begin, Myarg.end, Myarg.input, top=Myarg.topology)
-frame, timeD = libl402.calc_nearest_dist(first_frame, last_frame, traj, nneigh, groups[0], groups[1])
+frame, timeD = npbc_analysis.calc_nearest_dist(first_frame, last_frame, shift, traj, \
+    nneigh, metric, groups[0], groups[1])
 
-out = np.vstack((np.linspace(Myarg.begin, frame, frame-Myarg.begin), timeD)).transpose()
+out = np.vstack((np.linspace(Myarg.begin, frame+Myarg.begin, frame), timeD)).transpose()
 np.savetxt(Myarg.output+"_dist_n"+str(nneigh)+".dat", out, fmt="%9.6f")
 
 if Myarg.histogram:
