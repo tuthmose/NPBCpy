@@ -7,9 +7,84 @@ import scipy as sp
 
 import npbc_cy
 
-# FUNCTIONS    
+## @@ angular distribution
 
-## hbonds
+def frame_adf(usecy, norm, coords, nbins, bmax, hmax, dmax, H, D, A):
+    """
+    calculate average angle and assign histogram bin)
+    """
+    # sort groups to loop from small to big
+    if not usecy:
+        distB = sp.spatial.distance.cdist(coords[H],coords[D])
+        distH = sp.spatial.distance.cdist(coords[H],coords[A])
+        distD = sp.spatial.distance.cdist(coords[D],coords[A])
+        m1 = distB >= bmax[0] 
+        m2 = distB <= bmax[1] 
+        maskB = m1 & m2
+        m1 = distH >= hmax[0] 
+        m2 = distH <= hmax[1] 
+        maskH = m1 & m2
+        m1 = distD >= dmax[0] 
+        m2 = distD <= dmax[1] 
+        maskD = m1 & m2
+        values = list()
+        for i, hi in enumerate(H):
+            for j, aj in enumerate(A):
+                if hi != aj and maskH[i,j]:
+                    for k, dk in enumerate(D):
+                        if hi != dk and aj != dk and maskD[k,j] and maskB[i,k]:
+                            angle = (180./np.pi)*npbc_cy.calc_angle(coords, hi, dk, aj)
+                            values.append(angle)
+    else:
+        #calc_fhb(coords, what, rdf, adf, bmax, dmax, hmax, H, D, A)
+        values = npbc_cy.calc_fhb(coords, 1, None, None, bmax, dmax, hmax, H, D, A)        
+    if len(values) > 0:
+        his,rsp = np.histogram(values, bins=nbins, range=(0.0,180.))
+        if norm:
+            return np.average(values), his/len(values)
+        else:
+            return np.average(values), his
+    else:
+        return None, None
+
+def calc_adf(first_frame, last_frame, shift, usecy, nbins, bmax, hmax, dmax, traj, \
+    norm, radius, H, D, A):
+    """
+    read frames from xtcfile, then loop over particles and distances  
+    and calculate histogram for g(r); return numpy arrays 
+    """
+    ADF = np.zeros(nbins,dtype=np.float64)
+    timeA = list()
+    if first_frame == -1: 
+        first_frame = 0
+    frame = first_frame
+    ## density
+    vol = (4.0*np.pi/3.0)*(radius**3)
+    print("--- Number density for atom 1 is ",float(len(H))/vol)
+    print("--- Number density for atom 2 is ",float(len(D))/vol)
+    print("--- Number density for atom 3 is ",float(len(A))/vol)
+    #loop over all frames
+    for frame in range(first_frame, last_frame):
+        #calculate rdf for this frame
+            X = traj.xyz[frame]
+            angle, adf = frame_adf(usecy, norm, X+shift, nbins, bmax, hmax, dmax, H, D, A)
+            if angle is None:
+               timeA.append(-1)
+               ADF = ADF + np.zeros(nbins)
+            else: 
+                ADF = ADF + adf
+                timeA.append(angle)
+    frame = frame - first_frame + 1
+    print("--- Read ",frame," frames")
+    if norm:
+        ADF = ADF/frame
+    x = np.linspace(0., 180., nbins+1)
+    adf = np.vstack(([(x[i]+x[i+1])/2. for i in range(nbins)], ADF)).transpose()
+    timeA = np.vstack((np.linspace(first_frame, frame, frame-first_frame), timeA)).transpose()
+    return adf, timeA
+
+
+## @@ hbonds
 
 def cont_hbonds(coords, nbins, rdf, adf, bmax, hmax, dmax, H, D, A, norm):
     """
@@ -52,7 +127,7 @@ def calc_hbonds(first_frame, last_frame, shift, traj, rdf, adf, bmax, hmax, dmax
     print("--- Read ",frame," frames")
     return frame, histH, timeF
 
-## density layers
+## @@ density layers
 
 def collect_dens(atoms, ntot, Coords, natoms, radii2, MM):
     """
@@ -107,7 +182,7 @@ def calc_density(first_frame, last_frame, shift, vol, from_wall, traj, atoms, na
         RHO  = np.vstack((x_from_boundary,RHO/(frame*norm),RHO2/norm))
     return RHO
 
-## nearest neighbour
+## @@ nearest neighbour
 
 def calculate_distance(coords, nneigh, metric, groupA, groupB):
     """
@@ -138,9 +213,8 @@ def calc_nearest_dist(first_frame, last_frame, shift, traj, nneigh, metric, grou
     print("--- Read ",frame," frames")
     return frame, timeD
 
-## nmol
+## @@ nmol
 
-#FUNCTIONS
 def find_coms(natoms, coords, weights):
     """
     find center of mass of molecules of natoms 
@@ -218,7 +292,7 @@ def calc_nmol(first_frame, last_frame, traj, natoms, cutoff, nearest, groupA, gr
     timeN = np.asarray(timeN)
     return frame, timeN
 
-## orientation
+## @@ orientation
 
 def collect_o(normV, Coords, atoms, W, hfalp, versor, axis, nbins, natoms):
     """
@@ -286,9 +360,8 @@ def calc_orient(normV, first_frame, last_frame, traj, shift, top, group, axis, v
     tf = np.asarray(tf, dtype=object)
     return tf, THETA
 
-## rdf
+## @@ rdf
 
-#FUNCTIONS    
 def calculate_histogram(coords, nbins, rmax, dmax, ref, target, vol_dmax):
     """
     calculate g(r) for current frame

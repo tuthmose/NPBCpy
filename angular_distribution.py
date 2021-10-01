@@ -8,11 +8,10 @@ import mdtraj as md
 import numpy as np
 import scipy as sp
 
-import myparse
-import calclow
+import npbc_analysis
+import npbc_io
 
-Parse = argp.ArgumentParser(description='Angular distribution function for spherical boxes between  Hydrogen (H)\,
-                            donor (D) and acceptor (A) atoms')
+Parse = argp.ArgumentParser(description='Angular distribution function for spherical boxes between  Hydrogen (H), donor (D) and acceptor (A) atoms')
 # template and gaussian settings
 Parse.add_argument('-i','--input',help='input XTC trajectory',default=False,action='store')
 Parse.add_argument('-a','--adf',help='ASCII angular d. f. in [0,pi]',default=False,action='store')
@@ -91,89 +90,16 @@ if not Myarg.select:
 else: 
     select = list(map(int, Myarg.select))
     
-#FUNCTIONS    
-
-def calculate_histogram(coords, nbins, bmax, hmax, dmax, H, D, A):
-    """
-    calculate average angle and assign histogram bin)
-    """
-    # sort groups to loop from small to big
-    if not Myarg.do_cython:
-        distB = cdist(coords[H],coords[D])
-        distH = cdist(coords[H],coords[A])
-        distD = cdist(coords[D],coords[A])
-        m1 = distB >= bmax[0] 
-        m2 = distB <= bmax[1] 
-        maskB = m1 & m2
-        m1 = distH >= hmax[0] 
-        m2 = distH <= hmax[1] 
-        maskH = m1 & m2
-        m1 = distD >= dmax[0] 
-        m2 = distD <= dmax[1] 
-        maskD = m1 & m2
-        values = list()
-        for i, hi in enumerate(H):
-            for j, aj in enumerate(A):
-                if hi != aj and maskH[i,j]:
-                    for k, dk in enumerate(D):
-                        if hi != dk and aj != dk and maskD[k,j] and maskB[i,k]:
-                            angle = (180./np.pi)*calclow.calc_angle(coords, hi, dk, aj)
-                            values.append(angle)
-    else:
-        #calc_fhb(coords, what, rdf, adf, bmax, dmax, hmax, H, D, A)
-        values = calclow.calc_fhb(coords, 1, None, None, bmax, dmax, hmax, H, D, A)        
-    if len(values) > 0:
-        his,rsp = np.histogram(values, bins=nbins, range=(0.0,180.))
-        if Myarg.norm:
-            return np.average(values), his/len(values)
-        else:
-            return np.average(values), his
-    else:
-        return None, None
-
-def read_trajectory(first_frame, last_frame, nbins, bmax, hmax, dmax, traj, H, D, A):
-    """
-    read frames from xtcfile, then loop over particles and distances  
-    and calculate histogram for g(r); return numpy arrays 
-    """
-    ADF = np.zeros(nbins,dtype=np.float64)
-    timeA = list()
-    if first_frame == -1: 
-        first_frame = 0
-    frame = first_frame
-    ## density
-    vol = (4.0*np.pi/3.0)*(RSphere**3)
-    print("--- Number density for atom 1 is ",float(len(H))/vol)
-    print("--- Number density for atom 2 is ",float(len(D))/vol)
-    print("--- Number density for atom 3 is ",float(len(A))/vol)
-    #loop over all frames
-    for frame in range(first_frame, last_frame):
-        #calculate rdf for this frame
-            X = traj.xyz[frame]
-            angle, adf = calculate_histogram(X+shift, nbins, bmax, hmax, dmax, H, D, A)
-            if angle is None:
-               timeA.append(-1)
-               ADF = ADF + np.zeros(nbins)
-            else: 
-                ADF = ADF + adf
-                timeA.append(angle)
-    print("--- Read ",frame," frames")
-    if Myarg.norm:
-        ADF = ADF/frame
-    return frame, ADF, timeA
-
 # RUN
-groups = myparse.parse_index(Myarg.index, select)
-traj, first_frame, last_frame = myparse.loadtrj(Myarg.begin, Myarg.end, Myarg.input, top=Myarg.topology)
-frame, ADF, timeA = read_trajectory(first_frame, last_frame, nbins, bmax, hmax, dmax, \
-    traj, groups[0], groups[1], groups[2])
+groups = npbc_io.parse_index(Myarg.index, select)
+traj, first_frame, last_frame = npbc_io.loadtrj(Myarg.begin, Myarg.end, Myarg.input, top=Myarg.topology)
 
-x = np.linspace(0., 180., nbins+1)
-out_adf = np.vstack(([(x[i]+x[i+1])/2. for i in range(nbins)], ADF)).transpose()
-np.savetxt(Myarg.adf+".dat", out_adf, fmt="%9.6f")
+adf, timeA = npbc_analysis.calc_adf(first_frame, last_frame, shift, Myarg.do_cython, nbins, \
+    bmax, hmax, dmax, traj, Myarg.norm, RSphere, groups[0], groups[1], groups[2])
+
+np.savetxt(Myarg.adf+".dat", adf, fmt="%9.6f")
 
 if Myarg.aver:
-    out_time = np.vstack((np.linspace(Myarg.begin, frame, frame-Myarg.begin), timeA)).transpose()
-    np.savetxt(Myarg.aver+".dat", out_time, fmt="%9.6f")
+    np.savetxt(Myarg.aver+".dat", timeA, fmt="%9.6f")
     
 quit()    
