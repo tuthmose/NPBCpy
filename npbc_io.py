@@ -24,6 +24,7 @@ def create_hole(solute, solvent, rsphere, radii, elec, tol, outname):
     residues = list(range(solvent_top.n_residues))
     remove = list()
     rsphere = rsphere/10.
+    solute.xyz[0] = solute.xyz[0] - rsphere
     solvent.xyz[0] = solvent.xyz[0] - rsphere
     for res in range(len(residues)):
         ratoms = solvent_top.select("resid " + str(res))
