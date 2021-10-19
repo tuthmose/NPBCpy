@@ -90,7 +90,7 @@ def triple_product(v0, v1, v2):
 ### cython functions
 @wraparound(False)  
 @boundscheck(False)
-def calc_fhb(coords, what, rdf, adf, bmax, dmax, hmax, H, D, A):
+def calc_fhb(coords, what, rdf, adf, bmax, dmax, hmax, H, D, A, radius):
     """
     calculate ADF (what=1) or FHB (what=2) function on a given frame
     """
@@ -99,7 +99,7 @@ def calc_fhb(coords, what, rdf, adf, bmax, dmax, hmax, H, D, A):
     cdef int NH, ND, NA
     cdef double b0, b1, d0, d1, h0, h1
     cdef double peak_rdf, width_rdf, peak_adf, width_adf
-    cdef double const, n1, n2, n3, theta, out, Ar, Bt
+    cdef double const, n1, n2, n3, theta, out, Ar, Bt, R, Rmin, Rmax
     cdef double [:,:] cX = coords
     cdef int [:] cH = np.asarray(H,dtype=np.intc)
     cdef int [:] cD = np.asarray(D,dtype=np.intc)
@@ -108,6 +108,8 @@ def calc_fhb(coords, what, rdf, adf, bmax, dmax, hmax, H, D, A):
     cdef double v2[3]
     cdef double v3[3]
     # check what to do
+    Rmin = radius[0]
+    Rmax = radius[1]
     if what != 1 and what != 2:
         print("what you provided to calc_fhb " + str(what))
         raise ValueError("Unknown value")
@@ -135,6 +137,9 @@ def calc_fhb(coords, what, rdf, adf, bmax, dmax, hmax, H, D, A):
     # start a lot of nested loops (ugly!)
     for j in range(NA):
         out = 0.
+        R = csqrt(cX[cA[j],0]*cX[cA[j],0]+cX[cA[j],1]*cX[cA[j],1]+cX[cA[j],2]*cX[cA[j],2])
+        if R < Rmin or R > Rmax:
+            continue
         for i in range(NH):
             if cA[j] != cH[i]:
                 n1 = 0.

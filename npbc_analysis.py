@@ -9,7 +9,7 @@ import npbc_cy
 
 ## @@ angular distribution
 
-def frame_adf(usecy, norm, coords, nbins, bmax, hmax, dmax, H, D, A):
+def frame_adf(usecy, norm, coords, nbins, bmax, hmax, dmax, H, D, A, radius):
     """
     calculate average angle and assign histogram bin)
     """
@@ -37,7 +37,7 @@ def frame_adf(usecy, norm, coords, nbins, bmax, hmax, dmax, H, D, A):
                             values.append(angle)
     else:
         #calc_fhb(coords, what, rdf, adf, bmax, dmax, hmax, H, D, A)
-        values = npbc_cy.calc_fhb(coords, 1, None, None, bmax, dmax, hmax, H, D, A)        
+        values = npbc_cy.calc_fhb(coords, 1, None, None, bmax, dmax, hmax, H, D, A, radius)        
     if len(values) > 0:
         his,rsp = np.histogram(values, bins=nbins, range=(0.0,180.))
         if norm:
@@ -59,15 +59,16 @@ def calc_adf(first_frame, last_frame, shift, usecy, nbins, bmax, hmax, dmax, tra
         first_frame = 0
     frame = first_frame
     ## density
-    vol = (4.0*np.pi/3.0)*(radius**3)
-    print("--- Number density for atom 1 is ",float(len(H))/vol)
-    print("--- Number density for atom 2 is ",float(len(D))/vol)
-    print("--- Number density for atom 3 is ",float(len(A))/vol)
+    #vol = (4.0*np.pi/3.0)*(radius**3)
+    #TODO: calculate in radius
+    #print("--- Number density for atom 1 is ",float(len(H))/vol)
+    #print("--- Number density for atom 2 is ",float(len(D))/vol)
+    #print("--- Number density for atom 3 is ",float(len(A))/vol)
     #loop over all frames
     for frame in range(first_frame, last_frame):
         #calculate rdf for this frame
             X = traj.xyz[frame]
-            angle, adf = frame_adf(usecy, norm, X+shift, nbins, bmax, hmax, dmax, H, D, A)
+            angle, adf = frame_adf(usecy, norm, X+shift, nbins, bmax, hmax, dmax, H, D, A, radius)
             if angle is None:
                timeA.append(-1)
                ADF = ADF + np.zeros(nbins)
@@ -86,12 +87,12 @@ def calc_adf(first_frame, last_frame, shift, usecy, nbins, bmax, hmax, dmax, tra
 
 ## @@ hbonds
 
-def cont_hbonds(coords, nbins, rdf, adf, bmax, hmax, dmax, H, D, A, norm):
+def cont_hbonds(coords, nbins, rdf, adf, bmax, hmax, dmax, H, D, A, norm, radius):
     """
     calculate F_HB function; if A contains more than one atom,
     return an average value and a histogram
     """
-    values = npbc_cy.calc_fhb(coords, 2, rdf, adf, bmax, dmax, hmax, H, D, A)
+    values = npbc_cy.calc_fhb(coords, 2, rdf, adf, bmax, dmax, hmax, H, D, A, radius)
     if len(values) > 0:
         his, rsp = np.histogram(values, bins=nbins, range=(0., 3.))
         if norm:
@@ -102,7 +103,7 @@ def cont_hbonds(coords, nbins, rdf, adf, bmax, hmax, dmax, H, D, A, norm):
         return None, None
 
 def calc_hbonds(first_frame, last_frame, shift, traj, rdf, adf, bmax, hmax, dmax, nbins, \
-    norm, H, D, A):
+    norm, H, D, A, radius):
     """
     read frames from xtcfile, then loop over particles and distances  
     and calculate histogram for g(r); return numpy arrays 
@@ -116,7 +117,7 @@ def calc_hbonds(first_frame, last_frame, shift, traj, rdf, adf, bmax, hmax, dmax
     for frame in range(first_frame, last_frame):
         #calculate rdf for this frame
             X = traj.xyz[frame]
-            fhb, hist = cont_hbonds(X+shift, nbins, rdf, adf, bmax, hmax, dmax, H, D, A, norm)
+            fhb, hist = cont_hbonds(X+shift, nbins, rdf, adf, bmax, hmax, dmax, H, D, A, norm, radius)
             if fhb is None:
                 histH = histH + np.zeros(nbins)
                 timeF.append(-1)

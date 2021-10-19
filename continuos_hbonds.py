@@ -40,6 +40,8 @@ Parse.add_argument("-x","--shift",action="store",default=False,nargs=3,\
     help="shift coordinates by x,y,z")
 Parse.add_argument("-N","--norm",default=True,action="store_false",\
     help="normalization; default is to normalize")
+Parse.add_argument("-R","--radius",default=True,action="store_false",\
+    nargs=2,help="include molecules between Rmin and Rmax")
 Myarg = Parse.parse_args()
 print(Myarg)
 
@@ -97,13 +99,18 @@ try:
     nbins = int(Myarg.nbins)
 except:
     raise ValueError("ERROR: wrong number of bins")
+    
+if not Myarg.radius:
+    radius = (False, False)
+else:
+    radius = list(map(float, Myarg.radius))
 
 # RUN
 groups = npbc_io.parse_index(Myarg.index, select)
 traj, first_frame, last_frame = npbc_io.loadtrj(Myarg.begin, Myarg.end, Myarg.input, top=Myarg.topology)
 frame, histH, timeF = \
     npbc_analysis.calc_hbonds(first_frame, last_frame, shift, traj, rdf, adf, bmax, hmax, dmax, \
-        nbins, Myarg.norm, groups[0], groups[1], groups[2])
+        nbins, Myarg.norm, groups[0], groups[1], groups[2], radius)
 
 out = np.vstack((np.linspace(Myarg.begin, frame+Myarg.begin, frame), timeF)).transpose()
 np.savetxt(Myarg.output+"_fhb.dat", out, fmt="%9.6f")

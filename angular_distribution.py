@@ -32,8 +32,8 @@ Parse.add_argument("-H","--hmax",action="store",default=False,nargs=2,\
     help="minimum and maximum distance between atom1 and atom3")
 Parse.add_argument("-D","--dmax",action="store",default=False,nargs=2,\
     help="minimum and maximum distance between atom2 and atom3")
-Parse.add_argument("-R","--rsphere",default=False,action="store",\
-    help="radius for spherical boxes (angs)")
+Parse.add_argument("-R","--radius",default=True,action="store_false",\
+    nargs=2,help="include molecules between Rmin and Rmax")
 Parse.add_argument("-N","--norm",default=True,action="store_false",\
     help="normalization; default is to normalize")
 Parse.add_argument("-x","--shift",action="store",default=False,nargs=3,\
@@ -53,10 +53,10 @@ if not Myarg.topology:
 if not Myarg.adf:
     raise ValueError("Missing ADF file name")
 
-try:
-    RSphere = float(Myarg.rsphere)/10.
-except:
-    raise ValueError("ERROR: sphere radius not set")
+    if not Myarg.radius:
+    radius = (False, False)
+else:
+    radius = list(map(float, Myarg.radius))
 
 if Myarg.bmax: 
     bmax = np.array(list(map(float,Myarg.bmax)))/10.
@@ -95,7 +95,7 @@ groups = npbc_io.parse_index(Myarg.index, select)
 traj, first_frame, last_frame = npbc_io.loadtrj(Myarg.begin, Myarg.end, Myarg.input, top=Myarg.topology)
 
 adf, timeA = npbc_analysis.calc_adf(first_frame, last_frame, shift, Myarg.do_cython, nbins, \
-    bmax, hmax, dmax, traj, Myarg.norm, RSphere, groups[0], groups[1], groups[2])
+    bmax, hmax, dmax, traj, Myarg.norm, radius, groups[0], groups[1], groups[2])
 
 np.savetxt(Myarg.adf+".dat", adf, fmt="%9.6f")
 
