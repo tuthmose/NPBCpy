@@ -40,8 +40,9 @@ Parse.add_argument("-x","--shift",action="store",default=False,nargs=3,\
     help="shift coordinates by x,y,z")
 Parse.add_argument("-N","--norm",default=True,action="store_false",\
     help="normalization; default is to normalize")
-Parse.add_argument("-R","--radius",default=True,action="store_false",\
+Parse.add_argument("-R","--radius",default=False,action="store",\
     nargs=2,help="include molecules between Rmin and Rmax")
+Parse.add_argument("--rsphere",default=False,action='store',help='radius of spherical box')
 Myarg = Parse.parse_args()
 print(Myarg)
 
@@ -100,10 +101,15 @@ try:
 except:
     raise ValueError("ERROR: wrong number of bins")
     
-if not Myarg.radius:
-    radius = (False, False)
+if not Myarg.rsphere:
+    raise ValueError("ERROR: missing spherical box radius")
 else:
-    radius = list(map(float, Myarg.radius))
+    rsphere = float(Myarg.rsphere)/10.
+
+if not Myarg.radius:
+    radius = (0., rsphere)
+else:
+    radius = list(map(float, Myarg.radius))/10.
 
 # RUN
 groups = npbc_io.parse_index(Myarg.index, select)

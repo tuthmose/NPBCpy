@@ -32,8 +32,9 @@ Parse.add_argument("-H","--hmax",action="store",default=False,nargs=2,\
     help="minimum and maximum distance between atom1 and atom3")
 Parse.add_argument("-D","--dmax",action="store",default=False,nargs=2,\
     help="minimum and maximum distance between atom2 and atom3")
-Parse.add_argument("-R","--radius",default=True,action="store_false",\
-    nargs=2,help="include molecules between Rmin and Rmax")
+Parse.add_argument("-R","--radius",default=False,action="store",nargs=2,\
+    help="include molecules between Rmin and Rmax")
+Parse.add_argument("--rsphere",default=False,action='store',help='radius of spherical box')
 Parse.add_argument("-N","--norm",default=True,action="store_false",\
     help="normalization; default is to normalize")
 Parse.add_argument("-x","--shift",action="store",default=False,nargs=3,\
@@ -53,8 +54,13 @@ if not Myarg.topology:
 if not Myarg.adf:
     raise ValueError("Missing ADF file name")
 
-    if not Myarg.radius:
-    radius = (False, False)
+if not Myarg.rsphere:
+    raise ValueError("ERROR: missing spherical box radius")
+else:
+    rsphere = float(Myarg.rsphere)/10.
+
+if not Myarg.radius:
+    radius = (0., rsphere)
 else:
     radius = list(map(float, Myarg.radius))
 
