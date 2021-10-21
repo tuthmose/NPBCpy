@@ -4,12 +4,34 @@
 # collection of functions for parsing (e.g. Gromacs index files)
 # and basic I/O
 
+# TODO eliminate atom counting and use residues and mdtraj.topology
+
 from collections import defaultdict
 from itertools import islice
 
 import mdtraj as md
 import numpy as np
 import scipy as sp
+
+def sortmol(reference, target, natom1, natom2, coords, nearest=True, metric="euclidean"):
+    """
+    sort atoms in target with respect to their distance to
+    reference and rewrite target and natom consecutive atoms
+    in that order
+    all target atoms must be already ordered and begin after
+    reference+natom1
+    """
+    R = coords[reference][np.newaxis]
+    D = sp.spatial.distance.cdist(R, coords[target], metric=metric)[0]
+    order = np.argsort(D)
+    #if nearest == False:
+    #    order = order[::-1]
+    print(D[30])
+    D = D[order]
+    neworder = list(range(natom1))
+    for o in order:
+        neworder = neworder + list(range((o+1)*3,(o+1)*3+natom2))
+    return neworder, order, D
 
 def create_hole(solute, solvent, rsphere, radii, elec, tol, outname):
     """
