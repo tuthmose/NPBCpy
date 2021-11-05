@@ -66,7 +66,6 @@ def create_hole(solute, solvent, rsphere, radii, elec, tol, outname):
                 remove.append(res)
             #break
         #break
-    print(remove)
     okres = list(set(residues).difference(remove))
     rlist = "resid " + ' '.join(list(map(str,okres)))
     solvent.restrict_atoms(solvent_top.select(rlist))
