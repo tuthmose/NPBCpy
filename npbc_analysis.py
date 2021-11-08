@@ -75,7 +75,7 @@ def calc_adf(first_frame, last_frame, shift, usecy, nbins, bmax, hmax, dmax, tra
             else: 
                 ADF = ADF + adf
                 timeA.append(angle)
-    frame = frame - first_frame + 1
+    frame = frame - first_frame 
     print("--- Read ",frame," frames")
     if norm:
         ADF = ADF/frame
@@ -124,7 +124,7 @@ def calc_hbonds(first_frame, last_frame, shift, traj, rdf, adf, bmax, hmax, dmax
             else: 
                 histH = histH + hist
                 timeF.append(fhb)
-    frame = frame - first_frame + 1
+    frame = frame - first_frame 
     print("--- Read ",frame," frames")
     return frame, histH, timeF
 
@@ -151,6 +151,7 @@ def calc_density(first_frame, last_frame, shift, vol, from_wall, traj, atoms, na
     # constants
     NA  = sp.constants.N_A
     nm3_l = 10**(-24)
+    norm = (vol*NA*nm3_l)
     nbins = len(radii)-1
     RHO  = np.zeros(nbins, dtype=np.float64)
     RHO2 = np.zeros(nbins, dtype=np.float64)    
@@ -162,18 +163,14 @@ def calc_density(first_frame, last_frame, shift, vol, from_wall, traj, atoms, na
     radii2 = radii**2
     print("--- Reading frames")
     frame = first_frame
-    while True:
-        if frame >= last_frame:
-            break
-        else:
+    for frame in range(first_frame, last_frame):
             X = traj.xyz[frame]
             rho = collect_dens(atoms, ntot, X+shift, natoms, radii2 ,M)
             frame += 1
             RHO  = RHO  + rho
             RHO2 = RHO2 + rho*rho
-    frame = frame - first_frame + 1
+    frame = frame - first_frame 
     print("--- Read ", frame," frames")
-    norm = (vol*NA*nm3_l)
     RHO2 = np.sqrt((RHO2/frame - (RHO/frame)**2))
     halfpoints = [radii[i-1] + (radii[i]-radii[i-1])/2.0 for i in range(1,nbins+1)]
     if from_wall is False:
@@ -210,7 +207,7 @@ def calc_nearest_dist(first_frame, last_frame, shift, traj, nneigh, metric, grou
             X = traj.xyz[frame]
             dist = calculate_distance(X+shift, nneigh, metric, groupA, groupB)
             timeD.append(dist)
-    frame = frame - first_frame + 1
+    frame = frame - first_frame 
     print("--- Read ",frame," frames")
     return frame, timeD
 
@@ -288,7 +285,7 @@ def calc_nmol(first_frame, last_frame, traj, natoms, cutoff, nearest, groupA, gr
             X = traj.xyz[frame]
             nmol = calculate_coord_number(X+shift, weights, cutoff, natoms, nearest, groupA, groupB, groupC)
             timeN.append(nmol)
-    frame = frame - first_frame + 1
+    frame = frame - first_frame 
     print("--- Read ",frame," frames")
     timeN = np.asarray(timeN)
     return frame, timeN
@@ -318,12 +315,12 @@ def collect_o(normV, Coords, atoms, W, hfalp, versor, axis, nbins, natoms):
             com = np.average(Coords[i:i+natoms,:], weights=W[i:i+natoms],axis=0)
             r = np.linalg.norm(com)
             mybin = (np.abs(hfalp - r)).argmin()
-            cosangle = npbc_cy.dotprod(com, vnormal)
-            cosines[mybin] += cosangle
-            sines[mybin]   += math.sqrt(1.-cosangle**2)
+            cosval = npbc_cy.dotprod(com, vnormal)
+            cosines[mybin] += cosval
+            sines[mybin]   += math.sqrt(1.-cosval**2)
     #circ mean
     Theta = np.arctan2(sines, cosines)
-    return Theta, Theta**2
+    return cosines, Theta, Theta**2
 
 def calc_orient(normV, first_frame, last_frame, traj, shift, top, group, axis, vol, \
     radii, weights, natoms):
@@ -334,7 +331,8 @@ def calc_orient(normV, first_frame, last_frame, traj, shift, top, group, axis, v
     rad2deg = 180.0/np.pi
     nbins = len(radii)-1
     THETA  = np.zeros(nbins,dtype=np.float64)
-    THETA2 = np.zeros(nbins,dtype=np.float64)    
+    THETA2 = np.zeros(nbins,dtype=np.float64)
+    cosval = np.zeros(nbins,dtype=np.float64)
     if axis == False:
         halfpoints = np.asarray([radii[i-1] + (radii[i]-radii[i-1])/2.0 for i in range(1,nbins+1)])
     else:
@@ -344,22 +342,21 @@ def calc_orient(normV, first_frame, last_frame, traj, shift, top, group, axis, v
         first_frame = 0
     versor = False
     frame = first_frame
-    tf = list()
     #loop over all frames
     for frame in range(first_frame, last_frame):
         #calculate for this frame
         X = traj.xyz[frame]
-        theta, theta2 = collect_o(normV, X+shift, group, weights, halfpoints, versor, axis, nbins, natoms)
+        cv, theta, theta2 = collect_o(normV, X+shift, group, weights, halfpoints, versor, axis, nbins, natoms)
         THETA  = THETA  + theta
         THETA2 = THETA2 + theta2
-        tf.append((frame, theta))
-    frame = frame - first_frame + 1
+        cosval = cosval + cv
+    frame = frame - first_frame 
     print("--- Read ",frame," frames")
     THETA  = theta/frame
+    cosval = cosval/frame
     THETA2 = np.sqrt(THETA2/frame - THETA**2)
-    THETA  = np.vstack((halfpoints,-(THETA*rad2deg-90.0),THETA2*rad2deg)).T
-    tf = np.asarray(tf, dtype=object)
-    return tf, THETA
+    THETA  = np.vstack((halfpoints,-(THETA*rad2deg),THETA2*rad2deg)).T
+    return cosval, THETA
 
 ## @@ rdf
 
@@ -450,7 +447,6 @@ def calc_rdf(first_frame, last_frame, nbins, calc_cn, smooth, norm, \
             Nref  += na
             CN    += cn
             frame += 1
-    #frame += 1
     frame = frame - first_frame + 1
     Nref = Nref/frame
     print("--- Read ",frame," frames")

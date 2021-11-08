@@ -50,7 +50,7 @@ if not Myarg.output:
     raise ValueError("Missing output file name")
 
 try:
-    RSphere = float(Myarg.rsphere)/10.
+    RSphere = float(Myarg.RSphere)/10.
 except:
     raise ValueError("ERROR: sphere radius not set")
     
