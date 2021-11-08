@@ -79,8 +79,8 @@ def sphere_radii(atoms, natoms, nbins, const_vol, rmin, rmax):
     NA  = sp.constants.N_A
     nm3_l = 10**(-24)
     radius = (rmax - rmin)
-    Vtot = (4.0/3.0)*np.pi*(radius**3)
     csph = 4.0*np.pi/3.0
+    Vtot = csph*(radius**3)
     if const_vol:
         vol  = Vtot/nbins    
         print("--- Using concentrinc shells of volume: ", vol, " angstroem^3")
