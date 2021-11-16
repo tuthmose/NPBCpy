@@ -81,7 +81,7 @@ def calc_adf(first_frame, last_frame, shift, usecy, nbins, bmax, hmax, dmax, tra
         ADF = ADF/frame
     x = np.linspace(0., 180., nbins+1)
     adf = np.vstack(([(x[i]+x[i+1])/2. for i in range(nbins)], ADF)).transpose()
-    timeA = np.vstack((np.linspace(first_frame, frame, frame-first_frame), timeA)).transpose()
+    timeA = np.vstack((np.linspace(first_frame, frame, frame+1), timeA)).transpose()
     return adf, timeA
 
 

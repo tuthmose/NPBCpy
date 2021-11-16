@@ -4,3 +4,6 @@
 *.exe
 __pycache__/
 commit.txt
+build/
+*.so
+*.c
