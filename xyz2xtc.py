@@ -22,6 +22,7 @@ Parse.add_argument("-m","--molecules",dest="select",default=0,action="store",\
     help="molecules to be written (default all); com nyi; use group numbers")
 Parse.add_argument("-x","--shift",action="store",default=False,nargs=3,\
     help="shift coordinates by x,y,z")
+Parse.add_argument("-E","--extract",action="store",default=False,help="extract frames from begin to end")
 Myarg = Parse.parse_args()
 print(Myarg)
 
@@ -41,6 +42,18 @@ if not Myarg.out:
     raise ValueError("Missing output file name")
 else:
     out = Myarg.out + ".xtc"
+try:
+    begin = int(Myarg.begin)
+except:
+    begin = -1
+
+try:
+    end = int(Myarg.end)
+except:
+    end = -1
+
+if begin==-1:
+    begin=0
 
 if Myarg.shift:
     shift = np.array(map(float,Myarg.shift))/10.
@@ -61,10 +74,17 @@ if natoms != top.n_atoms:
 else:
     newtrj = top
     
-myxyz, natoms, nframes = npbc_io.loadxyz(Myarg.input, atoms)
-time = np.asarray([i*Myarg.deltat for i in range(nframes)])
+if not Myarg.extract:
+    myxyz, natoms, nframes = npbc_io.loadxyz(Myarg.input, atoms)
+    if end == -1:
+        end = nframes
+    assert begin < end
+    time = np.asarray([i*Myarg.deltat for i in range(begin, end, 1)])
 
-with md.formats.XTCTrajectoryFile(Myarg.out, 'w') as f:
-    f.write(myxyz)
- 
+    with md.formats.XTCTrajectoryFile(Myarg.out, 'w') as f:
+        f.write(myxyz)
+else:
+    traj = md.load(Myarg.input, top=Myarg.topology)
+    traj.xyz[begin:end].save_xyz(Myarg.out)
+
 quit()
