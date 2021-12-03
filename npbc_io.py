@@ -33,7 +33,7 @@ def sortmol(reference, target, natom1, natom2, coords, nearest=True, metric="euc
         neworder = neworder + list(range((o+1)*3,(o+1)*3+natom2))
     return neworder, order, D
 
-def create_hole(solute, solvent, rsphere, radii, elec, tol, outname):
+def create_hole(solute, solvent, rsphere_solute, rsphere_solvent, radii, elec, tol, outname):
     """
     create hole using covalent radii and same eq as proxima with
     role of tolerance reversed
@@ -45,16 +45,18 @@ def create_hole(solute, solvent, rsphere, radii, elec, tol, outname):
     solvent_natoms = len(solvent_top.select("resid 1"))
     residues = list(range(solvent_top.n_residues))
     remove = list()
-    rsphere = rsphere/10.
-    solute.xyz[0] = solute.xyz[0] - rsphere
-    solvent.xyz[0] = solvent.xyz[0] - rsphere
+    rsphere_solute = rsphere_solute/10.
+    rsphere_solvent = rsphere_solvent/10.
+    solute.xyz[0] = solute.xyz[0] - rsphere_solute
+    solvent.xyz[0] = solvent.xyz[0] - rsphere_solvent
     for res in range(len(residues)):
         ratoms = solvent_top.select("resid " + str(res))
         if len(ratoms) == 0: 
             continue
         for jatom in range(solute.n_atoms):
             jelem = solute_atoms[jatom]
-            if jelem == "VS": continue
+            if jelem == "VS" or jelem == "LP":
+                continue
             D = 10.*np.linalg.norm(solvent.xyz[0][ratoms] - solute.xyz[0][jatom], axis=1)
             C = list()
             for i in solvent_atoms[ratoms]:
