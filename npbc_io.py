@@ -13,6 +13,104 @@ import mdtraj as md
 import numpy as np
 import scipy as sp
 
+def reglog():
+    """
+    define regula expressions to parse input file
+    gdv/j19 Link402 ver March 22
+    """
+    REGX = dict()
+    REGX['get_data'] = \
+    re.compile(r'Statistics\swill\sbe(\s|\w)+steps\.\n(.*)Simulation\sconcluded',re.DOTALL)
+    REGX['get_mean_Ep'] = \
+    re.compile(r'Average\spotential\senergy\s:\s+(.*)\s\+\/\-\s+(.*)\n')
+    REGX['get_mean_T']  = \
+    re.compile(r'Average\stemperature\s+:\s+([0-9\.]+)\s\+\/\-\s+([0-9\.]+)')
+    REGX['get_acc_ratio'] = re.compile(r'Total\sacceptance\sratio\s+:\s+(.*)\s\(')
+    REGX['get_atomic_ratio'] = re.compile(r'Atomic\stranslation\s.*\s+:\s+(.*)\s\(')
+    REGX['get_transl_ratio'] = re.compile(r'Fragment\stranslation.*\s+:\s+(.*)\s\(')
+    REGX['get_rota_ratio'] = re.compile(r'Fragment\srotation.*\s+:\s+(.*)\s\(')
+    return REGX
+
+def getmean(regx, log):
+    """
+    using the regular expressions defined in reglog, return averages
+    of energies and acceptance ratios
+    log is a read gdv log file
+    """
+    data = dict()
+    try:
+        data['mean_temp'] = regx['get_mean_T.search(log)'].group(1)
+        data['sd_temp'] =  regx['get_mean_T.search(log)'].group(2)
+    except:
+        data['mean_temp'] = None
+        data['sd_temp'] =  None
+    try:
+        data['mean_Ep'] = regx['get_mean_Ep.search(log)'].group(1)
+        data['sd_Ep'] =  regx['get_mean_Ep.search(log)'].group(2)
+    except:
+        data['mean_Ep'] = None
+        data['sd_Ep'] =  None
+    try:
+        data['mean_ratio'] = regx['get_acc_ratio'].search(log).group(1)
+    except:
+        data['mean_ratio'] = None
+    try:
+        data['mean_at_ratio'] = regx['get_atomic_ratio'].search(log).group(1)
+    except:
+        data['mean_at_ratio'] = None
+    try:
+        data['mean_tr_ratio'] = regx['get_transl_ratio'].search(log).group(1)
+    except:
+        data['mean_tr_ratio'] = None
+    try:
+        data['mean_rt_ratio'] = regx['get_rota_ratio'].search(log).group(1) 
+    except:
+        data['mean_rt_ratio'] = None
+    return data
+
+def get_simul(regx, averages, log, use_ts=False, sepMD=False, sepMC=False):
+    """
+    get data point from simulations
+    """
+    ts_fields = list(range(1,7))
+    sp_fields = [0] + list(range(2,7))
+    toskip = ('Trajectory', 'MMDT2A', 'MMDT2F', 'Step', '(#)')
+    data = regx['get_data'].search(log).group(2)
+    lines = data.split("\n")
+    if SepMD:
+        mddata = list()
+    else:
+        mddata = None
+    if SepMC:
+        mcdata = list()
+    else:
+        mcdata = None
+    alldata = list()
+    for line in lines:
+        record = line.split()
+        if len(record)==0 or record[0] in toskip:
+            continue
+        if sepMD and len(record)==7:
+            if use_ts:
+                dataline = [record[f] for f in ts_fields] + [averages['mean_temp'], \
+                    averages['mean_Ep']]
+            else:
+                dataline = [record[f] for f in sp_fields] +  [averages['mean_temp'], \
+                    averages['mean_Ep']]
+            mddata.append(dataline)
+        if SepMC and len(record) == 5:
+            acc = lambda x: '0' if x=='F' else '1'
+            dataline = [record[0],record[-1],averages['mean_Ep'],acc(record[3]),\
+                 averages['mean_ratio']]
+            mcdata.append(dataline)
+        if len(record) == 5:
+            alldata.append([record[0],record[-1],averages['mean_Ep']])
+        elif len(record) == 7:
+            alldata.append([record[0],record[4],averages['mean_Ep']])
+    return alldata, mddata, mcdata
+    
+    
+
 def sortmol(reference, target, natom1, natom2, coords, nearest=True, metric="euclidean"):
     """
     sort atoms in target with respect to their distance to
