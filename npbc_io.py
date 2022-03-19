@@ -11,6 +11,7 @@ from itertools import islice
 
 import mdtraj as md
 import numpy as np
+import re
 import scipy as sp
 
 def reglog():
@@ -39,38 +40,41 @@ def getmean(regx, log):
     """
     data = dict()
     try:
-        data['mean_temp'] = regx['get_mean_T.search(log)'].group(1)
-        data['sd_temp'] =  regx['get_mean_T.search(log)'].group(2)
+        data['mean_temp'] = float(regx['get_mean_T'].search(log).group(1))
+        data['sd_temp'] =  float(regx['get_mean_T'].search(log).group(2))
     except:
         data['mean_temp'] = None
         data['sd_temp'] =  None
     try:
-        data['mean_Ep'] = regx['get_mean_Ep.search(log)'].group(1)
-        data['sd_Ep'] =  regx['get_mean_Ep.search(log)'].group(2)
+        data['mean_Ep'] = float((regx['get_mean_Ep'].search(log).group(1)).replace('D','E'))
+        data['sd_Ep'] =  float((regx['get_mean_Ep'].search(log).group(2)).replace('D','E'))
     except:
         data['mean_Ep'] = None
         data['sd_Ep'] =  None
     try:
-        data['mean_ratio'] = regx['get_acc_ratio'].search(log).group(1)
+        data['mean_ratio'] = float(regx['get_acc_ratio'].search(log).group(1))
     except:
         data['mean_ratio'] = None
     try:
-        data['mean_at_ratio'] = regx['get_atomic_ratio'].search(log).group(1)
+        data['mean_at_ratio'] = float(regx['get_atomic_ratio'].search(log).group(1))
     except:
         data['mean_at_ratio'] = None
     try:
-        data['mean_tr_ratio'] = regx['get_transl_ratio'].search(log).group(1)
+        data['mean_tr_ratio'] = float(regx['get_transl_ratio'].search(log).group(1))
     except:
         data['mean_tr_ratio'] = None
     try:
-        data['mean_rt_ratio'] = regx['get_rota_ratio'].search(log).group(1) 
+        data['mean_rt_ratio'] = float(regx['get_rota_ratio'].search(log).group(1)) 
     except:
         data['mean_rt_ratio'] = None
     return data
 
-def get_simul(regx, averages, log, use_ts=False, sepMD=False, sepMC=False):
+def getsimul(regx, averages, log, use_ts=False, SepMD=False, SepMC=False):
     """
-    get data point from simulations
+    get data point from simulations; average values are repeated for 
+    fast plot with xmgrace/GNUplot
+    when printing all data in one array missing data in MC lines is
+    filled with 0s
     """
     ts_fields = list(range(1,7))
     sp_fields = [0] + list(range(2,7))
@@ -90,24 +94,27 @@ def get_simul(regx, averages, log, use_ts=False, sepMD=False, sepMC=False):
         record = line.split()
         if len(record)==0 or record[0] in toskip:
             continue
-        if sepMD and len(record)==7:
+        if SepMD and len(record)==7:
             if use_ts:
-                dataline = [record[f] for f in ts_fields] + [averages['mean_temp'], \
-                    averages['mean_Ep']]
+                dataline = [float(record[f]) for f in ts_fields[:-1]] + \
+                    [float(record[ts_fields[-1]].replace('D','E'))] + \
+                    [averages['mean_temp'], averages['mean_Ep']]
             else:
-                dataline = [record[f] for f in sp_fields] +  [averages['mean_temp'], \
-                    averages['mean_Ep']]
+                dataline = [float(record[f]) for f in sp_fields[:-1]] + \
+                    [float(record[sp_fields[-1]].replace('D','E'))] + \
+                    [averages['mean_temp'], averages['mean_Ep']]
             mddata.append(dataline)
         if SepMC and len(record) == 5:
-            acc = lambda x: '0' if x=='F' else '1'
-            dataline = [record[0],record[-1],averages['mean_Ep'],acc(record[3]),\
+            acc = lambda x: 0 if x=='F' else 1
+            dataline = [float(record[0]),float(record[-1]),averages['mean_Ep'],acc(record[3]),\
                  averages['mean_ratio']]
             mcdata.append(dataline)
         if len(record) == 5:
-            alldata.append([record[0],record[-1],averages['mean_Ep']])
+            alldata.append([float(record[0]),float(record[-1]),averages['mean_Ep'],0.0])
         elif len(record) == 7:
-            alldata.append([record[0],record[4],averages['mean_Ep']])
-    return alldata, mddata, mcdata
+            alldata.append([float(record[0]),float(record[4]), \
+                float(record[-1].replace('D','E')),averages['mean_Ep']])
+    return np.asarray(alldata), np.asarray(mddata), np.asarray(mcdata)
     
     
 

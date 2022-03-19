@@ -2,8 +2,11 @@
 # G Mancini June 2020
 
 import argparse as argp
-import math
+import numpy as np
+import gzip
+import os
 import re
+import shutil
 import sys
 
 import npbc_io
@@ -21,9 +24,22 @@ Parse.add_argument('--prefix',help='output files name prefix (default: same as i
     default=None,action='store')
 Parse.add_argument('--log',help='G16 log file to parse',\
     default=None,action='store')
+Parse.add_argument('--zip',help='log file is gzipped G16 log file to parse',\
+    default=False,action='store_true')
 Myarg = Parse.parse_args()
 print("+++ Options set")
 print(Myarg)
+
+#
+def read_uncompressed(compressed_log):
+    with gzip.open(compressed_log, 'rb') as f_in:
+        with open('file.txt', 'wb') as f_out:
+            shutil.copyfileobj(f_in, f_out)
+    f_in = open('file.txt', "r")
+    log = f_in.read()   
+    f_in.close()
+    os.remove("file.txt")
+    return log
 
 # set file name and open output files
 prf = re.compile('(.*)\.log')
@@ -34,34 +50,33 @@ else:
         prefix = prf.search(Myarg.log).group(1)
     except:
         raise ValueError('Please use .log suffix for gaussian output files')
+
 if Myarg.MC:
     mcname = prefix + ".mc.dat"
-    mcfile = open(mcname, 'w')
 if Myarg.MD:
     mdname = prefix + ".MD.dat"
-    mdfile = open(mdname, 'w')
 outname = prefix + ".dat"
-outfile = open(outname, "w")
 
-log_regex = npbc_io.getlog()
+log_regex = npbc_io.reglog()
 
 # open and parse file
-print("+++ Parsing file ", Myarg.log)
-log_file = open(Myarg.log,'r')
-log = log_file.read()
+if Myarg.zip:
+    log = read_uncompressed(Myarg.log)
+else:
+    print("+++ Parsing file ", Myarg.log)
+    log_file = open(Myarg.log,'r')
+    log = log_file.read()
 
 if Myarg.base_line:
-    average_data = npbc_io.getmean(log_regx, log)
+    average_data = npbc_io.getmean(log_regex, log)
 
-alldata, mddata, mcdata = npbc_io.get_simul(log_regex, average_data, log, Myarg.ts, Myarg.MD,\
+alldata, mddata, mcdata = npbc_io.getsimul(log_regex, average_data, log, Myarg.ts, Myarg.MD,\
     Myarg.MC)
 
-        outline = "".join([d + " " for d in dataline]) +"\n"
-log_file.close()
-outfile.close()
 if Myarg.MC:
-    mcfile.close()
+    np.savetxt(mcname, mcdata)
 if Myarg.MD:
-    mdfile.close()
+    np.savetxt(mdname, mddata)
+np.savetxt(outname, alldata)
 
 quit()
